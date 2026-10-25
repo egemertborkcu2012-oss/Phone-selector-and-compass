@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#10131b">
+  <meta name="description" content="A simple phone flashlight with a strobe and compass.">
+  <title>Beam &amp; Compass</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #10131b;
+      --panel: #191e29;
+      --panel-2: #222938;
+      --line: #323b4c;
+      --text: #f4f6fb;
+      --muted: #aab3c2;
+      --accent: #ffd166;
+      --blue: #7bb8ff;
+      --red: #ff7777;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100dvh;
+      background: radial-gradient(ellipse at top, #20283a 0, var(--bg) 52%);
+      color: var(--text);
+      font: 16px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button, input { font: inherit; }
+    .shell { width: min(100%, 860px); margin: 0 auto; padding: max(24px, env(safe-area-inset-top)) 20px max(30px, env(safe-area-inset-bottom)); }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; background: #343022; color: var(--accent); font-size: 22px; }
+    h1 { margin: 0; font-size: clamp(20px, 5vw, 27px); letter-spacing: -.04em; }
+    .subtitle { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+    .status { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #707a8d; }
+    .dot.on { background: #69df9e; box-shadow: 0 0 12px #69df9e88; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 265px; gap: 18px; align-items: stretch; }
+    .card { border: 1px solid var(--line); border-radius: 24px; background: linear-gradient(145deg, #1c2230, var(--panel)); box-shadow: 0 18px 55px #0003; }
+    .main-card { padding: clamp(20px, 5vw, 32px); display: flex; flex-direction: column; align-items: center; text-align: center; }
+    .beam-orb { width: min(46vw, 200px); aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; margin: 8px auto 18px; background: radial-gradient(circle at 50% 43%, #fff4cf 0, #ffd166 13%, #52452b 35%, #252a35 66%); border: 1px solid #ffffff20; box-shadow: inset 0 0 25px #0007, 0 0 0 12px #ffffff06; transition: box-shadow .2s, filter .2s; }
+    .beam-orb.active { box-shadow: inset 0 0 25px #0004, 0 0 65px #ffd1665c, 0 0 0 12px #ffd16612; filter: brightness(1.2); }
+    .bulb { width: 44px; height: 44px; border: 3px solid #fff4d0; border-radius: 50%; background: #ffd166; box-shadow: 0 0 25px #ffd166; }
+    .mode-title { margin: 0; font-size: 22px; }
+    .mode-copy { color: var(--muted); margin: 6px 0 23px; font-size: 14px; max-width: 360px; }
+    .controls { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .button { min-height: 54px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 15px; color: var(--text); background: var(--panel-2); font-weight: 700; cursor: pointer; transition: transform .15s, background .15s, border-color .15s; }
+    .button:active { transform: scale(.98); }
+    .button:focus-visible, input:focus-visible { outline: 3px solid #7bb8ff; outline-offset: 3px; }
+    .button.primary { color: #231b09; background: var(--accent); border-color: var(--accent); }
+    .button.primary.active { color: white; background: #b94e4e; border-color: #b94e4e; }
+    .button.wide { grid-column: 1 / -1; }
+    .setting { width: 100%; margin-top: 20px; padding: 15px 16px; border-radius: 16px; background: #10141d7a; border: 1px solid #ffffff0c; text-align: left; }
+    .setting-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 9px; font-size: 13px; font-weight: 700; }
+    .setting output { color: var(--accent); }
+    input[type="range"] { width: 100%; accent-color: var(--accent); }
+    .range-labels { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; }
+    .warning { width: 100%; margin: 13px 0 0; color: #ffdca1; font-size: 12px; text-align: left; }
+    .compass-card { padding: 22px 18px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+    .compass-head { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 13px; }
+    .compass-head h2 { margin: 0; font-size: 16px; }
+    .toggle { border: 0; background: none; color: var(--blue); padding: 6px; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .dial-wrap { width: min(54vw, 190px); aspect-ratio: 1; margin: auto 0 12px; position: relative; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle, #242c3a 0 60%, #111722 61% 100%); border: 1px solid #4b566a; box-shadow: inset 0 0 25px #0008, 0 8px 22px #0003; }
+    .ticks { position: absolute; inset: 9px; border-radius: 50%; background: repeating-conic-gradient(from 0deg, #aab3c2 0deg 1deg, transparent 1deg 15deg); mask: radial-gradient(transparent 0 84%, #000 85%); opacity: .85; }
+    .cardinal { position: absolute; font-size: 12px; font-weight: 800; color: var(--muted); }
+    .north { top: 13px; color: #ff7777; } .east { right: 14px; } .south { bottom: 13px; } .west { left: 14px; }
+    .needle { width: 7px; height: 116px; position: relative; transition: transform .35s ease; z-index: 1; }
+    .needle::before, .needle::after { content: ""; position: absolute; left: 0; width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; }
+    .needle::before { top: 0; border-bottom: 55px solid #ff7777; }
+    .needle::after { bottom: 0; border-top: 55px solid #d7deeb; }
+    .pivot { z-index: 2; width: 15px; height: 15px; border-radius: 50%; background: #f4f6fb; border: 3px solid #66758d; position: absolute; }
+    .bearing { font-size: 32px; line-height: 1.1; font-weight: 750; letter-spacing: -.04em; }
+    .bearing span { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: 0; }
+    .direction { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+    .compass-note { min-height: 36px; margin: 14px 0 0; color: var(--muted); font-size: 12px; }
+    .fineprint { margin: 18px 4px 0; color: #858fa1; font-size: 11px; text-align: center; }
+    .toast { position: fixed; left: 50%; bottom: max(20px, env(safe-area-inset-bottom)); transform: translate(-50%, 20px); opacity: 0; pointer-events: none; padding: 12px 16px; border-radius: 12px; background: #30394a; color: white; box-shadow: 0 8px 25px #0007; font-size: 13px; transition: .2s; max-width: calc(100% - 32px); text-align: center; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    @media (max-width: 640px) {
+      .shell { padding-left: 15px; padding-right: 15px; }
+      header { margin-bottom: 17px; }
+      .layout { grid-template-columns: 1fr; gap: 14px; }
+      .main-card { padding: 20px; }
+      .beam-orb { width: 132px; margin-top: 0; }
+      .compass-card { min-height: 330px; padding: 17px; }
+      .dial-wrap { width: 170px; margin: 5px 0 12px; }
+      .needle { height: 105px; }
+      .needle::before { border-bottom-width: 50px; }
+      .needle::after { border-top-width: 50px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">✦</div>
+        <div><h1>Beam &amp; Compass</h1><p class="subtitle">Light when you need it. Direction when you don't.</p></div>
+      </div>
+      <div class="status" aria-live="polite"><span id="statusDot" class="dot"></span><span id="statusText">Ready</span></div>
+    </header>
+
+    <div class="layout">
+      <section class="card main-card" aria-labelledby="lightTitle">
+        <div id="beamOrb" class="beam-orb" aria-hidden="true"><div class="bulb"></div></div>
+        <h2 class="mode-title" id="lightTitle">Flashlight</h2>
+        <p class="mode-copy" id="lightCopy">Turn on your camera flash for a steady beam, or use high beam for a rapid strobe.</p>
+        <div class="controls">
+          <button class="button primary" id="torchButton" type="button">Turn light on</button>
+          <button class="button" id="strobeButton" type="button">High beam</button>
+          <button class="button wide" id="compassJump" type="button">Show compass</button>
+        </div>
+        <div class="setting">
+          <div class="setting-top"><label for="speed">Strobe speed</label><output id="speedOutput" for="speed">5 flashes/sec</output></div>
+          <input id="speed" type="range" min="2" max="10" value="5" step="1" aria-label="Strobe speed in flashes per second">
+          <div class="range-labels"><span>2 / sec</span><span>10 / sec</span></div>
+        </div>
+        <p class="warning">⚠ Strobe warning: rapidly flashing light may trigger seizures or discomfort. Use only when safe; never aim at eyes or use while driving.</p>
+      </section>
+
+      <section class="card compass-card" id="compassCard" aria-labelledby="compassTitle">
+        <div class="compass-head"><h2 id="compassTitle">Compass</h2><button class="toggle" id="compassToggle" type="button" aria-pressed="false">Activate</button></div>
+        <div class="dial-wrap" aria-label="Compass dial">
+          <div class="ticks" aria-hidden="true"></div>
+          <span class="cardinal north">N</span><span class="cardinal east">E</span><span class="cardinal south">S</span><span class="cardinal west">W</span>
+          <div class="needle" id="needle" aria-hidden="true"></div><div class="pivot" aria-hidden="true"></div>
+        </div>
+        <div class="bearing" id="bearing">—<span>°</span></div>
+        <p class="direction" id="direction">Waiting for heading</p>
+        <p class="compass-note" id="compassNote">Activate the compass and allow motion access when prompted.</p>
+      </section>
+    </div>
+    <p class="fineprint">Flashlight and compass availability depends on your phone and browser. Compass readings may be affected by nearby magnets and electronics.</p>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      const torchButton = document.getElementById('torchButton');
+      const strobeButton = document.getElementById('strobeButton');
+      const speedInput = document.getElementById('speed');
+      const speedOutput = document.getElementById('speedOutput');
+      const statusDot = document.getElementById('statusDot');
+      const statusText = document.getElementById('statusText');
+      const beamOrb = document.getElementById('beamOrb');
+      const compassToggle = document.getElementById('compassToggle');
+      const compassNote = document.getElementById('compassNote');
+      const needle = document.getElementById('needle');
+      const bearing = document.getElementById('bearing');
+      const direction = document.getElementById('direction');
+      const toast = document.getElementById('toast');
+      let stream = null;
+      let track = null;
+      let torchAvailable = false;
+      let lightOn = false;
+      let strobing = false;
+      let strobeTimer = null;
+      let switching = Promise.resolve();
+      let compassActive = false;
+      let toastTimer;
+      let lastHeading = null;
+
+      function notify(message) {
+        toast.textContent = message;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 3200);
+      }
+      function setStatus(text, active = false) {
+        statusText.textContent = text;
+        statusDot.classList.toggle('on', active);
+      }
+      function updateLightUI() {
+        beamOrb.classList.toggle('active', lightOn);
+        torchButton.textContent = lightOn && !strobing ? 'Turn light off' : 'Turn light on';
+        torchButton.classList.toggle('active', lightOn && !strobing);
+        strobeButton.textContent = strobing ? 'Stop high beam' : 'High beam';
+        strobeButton.classList.toggle('active', strobing);
+        setStatus(strobing ? 'Strobing' : lightOn ? 'Light on' : 'Ready', lightOn);
+      }
+      async function acquireTorch() {
+        if (track && torchAvailable) return true;
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error('Camera access is not available in this browser.');
+        }
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+        track = stream.getVideoTracks()[0];
+        const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+        torchAvailable = !!capabilities.torch;
+        if (!torchAvailable) {
+          stream.getTracks().forEach(item => item.stop());
+          stream = null;
+          track = null;
+          throw new Error('This phone or browser does not expose flashlight control. Try a supported mobile browser over HTTPS.');
+        }
+        return true;
+      }
+      function applyTorch(value) {
+        switching = switching.then(async () => {
+          if (!track || !torchAvailable) return;
+          await track.applyConstraints({ advanced: [{ torch: value }] });
+          lightOn = value;
+          updateLightUI();
+        });
+        return switching;
+      }
+      async function turnOn() {
+        try {
+          await acquireTorch();
+          await applyTorch(true);
+        } catch (error) {
+          stopStrobe();
+          notify(error.message || 'Could not turn on the flashlight.');
+        }
+      }
+      async function turnOff() {
+        stopStrobe();
+        try { if (track && torchAvailable) await applyTorch(false); } catch (_) { /* The browser may already have released the camera. */ }
+        lightOn = false;
+        updateLightUI();
+      }
+      function stopStream() {
+        if (stream) stream.getTracks().forEach(item => item.stop());
+        stream = null;
+        track = null;
+        torchAvailable = false;
+      }
+      function stopStrobe() {
+        if (strobeTimer) clearInterval(strobeTimer);
+        strobeTimer = null;
+        strobing = false;
+        if (track && torchAvailable) applyTorch(false).catch(() => {});
+        lightOn = false;
+        updateLightUI();
+      }
+      async function startStrobe() {
+        try {
+          await acquireTorch();
+          strobing = true;
+          updateLightUI();
+          const flashesPerSecond = Number(speedInput.value);
+          const halfCycleMs = Math.max(50, Math.round(1000 / (flashesPerSecond * 2)));
+          let next = true;
+          await applyTorch(true);
+          strobeTimer = setInterval(() => {
+            if (!strobing) return;
+            next = !next;
+            applyTorch(next).catch(error => {
+              stopStrobe();
+              notify('Strobe stopped: ' + (error.message || 'flash control failed.'));
+            });
+          }, halfCycleMs);
+        } catch (error) {
+          stopStrobe();
+          notify(error.message || 'Could not start the strobe.');
+        }
+      }
+      torchButton.addEventListener('click', () => {
+        if (strobing || lightOn) turnOff();
+        else turnOn();
+      });
+      strobeButton.addEventListener('click', () => {
+        if (strobing) stopStrobe();
+        else { if (lightOn) turnOff(); startStrobe(); }
+      });
+      speedInput.addEventListener('input', () => { speedOutput.value = `${speedInput.value} flashes/sec`; });
+      speedInput.addEventListener('change', () => {
+        if (strobing) { stopStrobe(); startStrobe(); }
+      });
+      document.getElementById('compassJump').addEventListener('click', () => {
+        document.getElementById('compassCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (!compassActive) activateCompass();
+      });
+
+      function compassDirection(degrees) {
+        const names = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+        return names[Math.round(degrees / 45) % 8];
+      }
+      function normalize(degrees) { return ((degrees % 360) + 360) % 360; }
+      function onOrientation(event) {
+        let heading = null;
+        if (typeof event.webkitCompassHeading === 'number') heading = event.webkitCompassHeading;
+        else if (event.absolute && typeof event.alpha === 'number') heading = 360 - event.alpha;
+        else if (typeof event.alpha === 'number' && !('ondeviceorientationabsolute' in window)) heading = 360 - event.alpha;
+        if (heading === null || Number.isNaN(heading)) return;
+        heading = normalize(heading);
+        lastHeading = heading;
+        bearing.innerHTML = `${Math.round(heading)}<span>°</span>`;
+        direction.textContent = `Heading ${compassDirection(heading)}`;
+        needle.style.transform = `rotate(${-heading}deg)`;
+        compassNote.textContent = 'Keep the phone flat and away from metal for a steadier reading.';
+      }
+      async function activateCompass() {
+        if (compassActive) return;
+        if (!('DeviceOrientationEvent' in window)) {
+          notify('Compass sensors are not available in this browser.');
+          compassNote.textContent = 'This browser does not provide device orientation.';
+          return;
+        }
+        try {
+          if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            const permission = await DeviceOrientationEvent.requestPermission();
+            if (permission !== 'granted') throw new Error('Motion access was not granted.');
+          }
+          window.addEventListener('deviceorientation', onOrientation, true);
+          window.addEventListener('deviceorientationabsolute', onOrientation, true);
+          compassActive = true;
+          compassToggle.textContent = 'Deactivate';
+          compassToggle.setAttribute('aria-pressed', 'true');
+          compassNote.textContent = 'Waiting for a sensor reading…';
+          if (lastHeading !== null) onOrientation({ alpha: 360 - lastHeading, absolute: true });
+        } catch (error) {
+          notify(error.message || 'Could not activate the compass.');
+          compassNote.textContent = 'Allow motion access in your browser settings, then try again.';
+        }
+      }
+      function deactivateCompass() {
+        window.removeEventListener('deviceorientation', onOrientation, true);
+        window.removeEventListener('deviceorientationabsolute', onOrientation, true);
+        compassActive = false;
+        compassToggle.textContent = 'Activate';
+        compassToggle.setAttribute('aria-pressed', 'false');
+        compassNote.textContent = 'Activate the compass and allow motion access when prompted.';
+        direction.textContent = 'Waiting for heading';
+      }
+      compassToggle.addEventListener('click', () => compassActive ? deactivateCompass() : activateCompass());
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && strobing) stopStrobe();
+      });
+      window.addEventListener('pagehide', () => {
+        if (track && torchAvailable) track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+        stopStream();
+      });
+    })();
+  </script>
+</body>
+</html>
